@@ -9,6 +9,7 @@ from .views import (
     AccountListAPIView,
     DepositAPIView,
     WithdrawAPIView,
+    TransferAPIView,
     AccountDetailAPIView
     
 )
@@ -21,6 +22,7 @@ urlpatterns = [
     path('create_account/', CreateAccountAPIView.as_view(), name='create-account'),
     path('deposits/', DepositAPIView.as_view(), name= 'deposits'),
     path('withdrawals/', WithdrawAPIView.as_view(), name= 'withdrawals'),
+    path('transfers/', TransferAPIView.as_view(), name= 'transfers'),
     path('accounts/', AccountListAPIView.as_view(), name='accounts'),
     path('account/<int:pk>/', AccountDetailAPIView.as_view(), name='account-detail')
 ]

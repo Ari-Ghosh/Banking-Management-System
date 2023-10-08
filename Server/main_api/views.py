@@ -57,6 +57,10 @@ class AccountListAPIView(generics.ListAPIView):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
     
+class TransferAPIView(generics.ListCreateAPIView):
+    queryset = Transfer.objects.all()
+    serializer_class = TransferSerializer
+    
 class DepositAPIView(generics.ListCreateAPIView):
     queryset = Deposit.objects.all()
     serializer_class = DepositSerializer
