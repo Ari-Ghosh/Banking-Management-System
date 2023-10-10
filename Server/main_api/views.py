@@ -1,15 +1,9 @@
-from django.contrib.auth.models import User
-from rest_framework.authtoken.models import Token
 from .models import UserAccount, Withdrawal, Deposit, Transfer
-from .serializers import UserAccountSerializer, WithdrawalSerializer, DepositSerializer, TransferSerializer
-from django.contrib.auth import authenticate, login
+from .serializers import UserAccountSerializer
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status
-from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404
 import random
 
 class UserRegistrationView(APIView):
