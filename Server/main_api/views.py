@@ -1,74 +1,173 @@
-from django.shortcuts import render
-from django.http import Http404
-
-from rest_framework import generics,status
-from rest_framework.response import Response 
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
+from .models import UserAccount, Withdrawal, Deposit, Transfer
+from .serializers import UserAccountSerializer, WithdrawalSerializer, DepositSerializer, TransferSerializer
+from django.contrib.auth import authenticate, login
 from rest_framework.views import APIView
+from rest_framework import viewsets
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
+import random
 
-from .models import *
-from .serializers import *
+class UserRegistrationView(APIView):
+    def generate_account_number(self):
+        while True:
+            account_number = random.randint(100000000000, 999999999999)  # Reduced the range for a 6-digit account number
+            if not UserAccount.objects.filter(account_number=account_number).exists():
+                return account_number
 
+    def post(self, request):
+        # Extract user registration data from the request
+        name = request.data.get('name')
+        address = request.data.get('address')
+        email = request.data.get('email')
+        phone_number = request.data.get('phone_number')
+        account_type = request.data.get('account_type')
+        mpin = request.data.get('mpin')
+        
 
-class BranchesAPIView(generics.ListCreateAPIView):
-    queryset = Branch.objects.all()
-    serializer_class = BranchSerializer
+        try:
+            # Create a new Registration instance
+            registration = UserAccount.objects.create(
+                name=name, address=address, email=email, phone_number=phone_number,
+                account_type=account_type, mpin=mpin, account_number=100000000000
+            )
 
-class BranchDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Branch.objects.all()
-    serializer_class = BranchSerializer
+            # Create an associated bank account
+            account_number = self.generate_account_number()
+            registration.account_number = account_number
+            registration.save()
 
-class BanksAPIView(generics.ListCreateAPIView):
-    queryset = Bank.objects.all()
-    serializer_class = BankSerializer
+            return Response({'detail': "Registration successful", 'account_number': account_number, "mpin": mpin}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-class BankDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Bank.objects.all()
-    serializer_class = BankSerializer
+class UserLoginView(APIView):
+    def post(self, request):
+        # Extract account number and MPIN from the request
+        account_number = request.data.get('account_number')
+        mpin = request.data.get('mpin')
 
-class CreateAccountAPIView(APIView):
+        # Authenticate the user based on account number and MPIN
+        registration = self.authenticate_user(account_number, mpin)
 
-    def post(self,request):
-        """
-        {
-            "full_name": "John Doe",
-            "address": "123 Main St",
-            "open_date": "2018-01-01",
-            "account_type": "savings",
-            "bank": 1
+        if registration is not None:
+            # Authentication successful, you can return a token or other login-related data
+            return Response({'detail': "Authentication successful"}, status=status.HTTP_200_OK)
+        else:
+            # Authentication failed, return an error response
+            return Response({'detail': 'Invalid account number or MPIN'}, status=status.HTTP_400_BAD_REQUEST)
 
-        }
-        """
-        client = Client.objects.create(
-            name = request.data['full_name'],
-            address = request.data['address']
-        )
-        bank = Bank.objects.get(pk=request.data['bank'])
-        account = Account.objects.create(
-            client = client,
-            open_date = request.data['open_date'],
-            account_type = request.data['account_type'],
-            bank = bank
-        )
+    def authenticate_user(self, account_number, mpin):
+        # Implement your custom authentication logic here
+        try:
+            # Query the database to find the user profile based on the provided account number
+            registration = UserAccount.objects.get(account_number=account_number)
+            
+            # Check if the provided MPIN matches the user's MPIN
+            if registration.mpin == mpin:
+                return registration
+            else:
+                return None  # MPIN doesn't match
+        except UserAccount.DoesNotExist:
+            return None  # User with the provided account number doesn't exist
 
-        serializer = AccountSerializer(account)
-        return Response(serializer.data,status=status.HTTP_201_CREATED)
+class AccountViewSet(viewsets.ModelViewSet):
+    queryset = UserAccount.objects.all()
+    serializer_class = UserAccountSerializer
 
-class AccountListAPIView(generics.ListAPIView):
-    queryset = Account.objects.all()
-    serializer_class = AccountSerializer
+    # Implement other CRUD operations (create, retrieve, update, destroy) as needed
+
+class AccountBalanceView(APIView):
+    def get(self, request, account_number):
+        try:
+            registration = UserAccount.objects.get(account_number=account_number)
+        except UserAccount.DoesNotExist:
+            return Response({'detail': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        balance = registration.balance
+
+        return Response({'account_number': account_number, 'balance': balance}, status=status.HTTP_200_OK)
     
-class TransferAPIView(generics.ListCreateAPIView):
-    queryset = Transfer.objects.all()
-    serializer_class = TransferSerializer
-    
-class DepositAPIView(generics.ListCreateAPIView):
-    queryset = Deposit.objects.all()
-    serializer_class = DepositSerializer
-    
-class WithdrawAPIView(generics.ListCreateAPIView):
-    queryset = Withdraw.objects.all()
-    serializer_class = WithdrawSerializer
+class AccountDetailsView(APIView):
+    def get(self, request, account_number):
+        try:
+            registration = UserAccount.objects.get(account_number=account_number)
+        except UserAccount.DoesNotExist:
+            return Response({'detail': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
 
-class AccountDetailAPIView(generics.RetrieveAPIView):
-    queryset = Account.objects.all()
-    serializer_class = AccountDetailSerializer
+        serializer = UserAccountSerializer(registration)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class WithdrawalView(APIView):
+    def post(self, request):
+        # Extract account_number and amount from the request
+        account_number = request.data.get('account_number')
+        amount = request.data.get('amount')
+
+        # Retrieve the associated account
+        try:
+            registration = UserAccount.objects.get(account_number=account_number)
+        except UserAccount.DoesNotExist:
+            return Response({'detail': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the account has sufficient balance for the withdrawal
+        if registration.balance < amount:
+            return Response({'detail': 'Insufficient balance'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a withdrawal record
+        Withdrawal.objects.create(registration=registration, amount=amount)
+
+        return Response({'detail': 'Withdrawal successful'}, status=status.HTTP_200_OK)
+
+class DepositView(APIView):
+    def post(self, request):
+        # Extract account_number and amount from the request
+        account_number = request.data.get('account_number')
+        amount = request.data.get('amount')
+
+        # Retrieve the associated account
+        try:
+            registration = UserAccount.objects.get(account_number=account_number)
+        except UserAccount.DoesNotExist:
+            return Response({'detail': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Create a deposit record
+        Deposit.objects.create(registration=registration, amount=amount)
+
+        return Response({'detail': 'Deposit successful'}, status=status.HTTP_200_OK)
+    
+class TransferView(APIView):
+    def post(self, request):
+        # Extract sender_account_number, receiver_account_number, and amount from the request
+        sender_account_number = request.data.get('sender_account_number')
+        receiver_account_number = request.data.get('receiver_account_number')
+        amount = request.data.get('amount')
+
+        # Retrieve the associated sender and receiver accounts
+        try:
+            sender_registration = UserAccount.objects.get(account_number=sender_account_number)
+            receiver_registration = UserAccount.objects.get(account_number=receiver_account_number)
+        except UserAccount.DoesNotExist:
+            return Response({'detail': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the sender account has sufficient balance for the transfer
+        if sender_registration.balance < amount:
+            return Response({'detail': 'Insufficient balance'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a transfer record
+        transfer = Transfer(sender_registration=sender_registration, receiver_registration=receiver_registration, amount=amount)
+        transfer.save()
+
+        # Perform withdrawal from sender's account
+        Withdrawal.objects.create(registration=sender_registration, amount=amount)
+
+        # Perform deposit to receiver's account
+        Deposit.objects.create(registration=receiver_registration, amount=amount)
+
+        return Response({'detail': 'Transfer successful'}, status=status.HTTP_200_OK)
+    

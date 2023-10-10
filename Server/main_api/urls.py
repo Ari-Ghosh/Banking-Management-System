@@ -1,28 +1,18 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import AccountDetailsView, AccountBalanceView, UserLoginView, UserRegistrationView, AccountViewSet, WithdrawalView, DepositView, TransferView
 
-from .views import (
-    BranchesAPIView,
-    BranchDetailAPIView,
-    BanksAPIView,
-    BankDetailAPIView,
-    CreateAccountAPIView,
-    AccountListAPIView,
-    DepositAPIView,
-    WithdrawAPIView,
-    TransferAPIView,
-    AccountDetailAPIView
-    
-)
+# Create a router for the AccountViewSet
+account_router = DefaultRouter()
+account_router.register(r'', AccountViewSet)
 
 urlpatterns = [
-    path('branches/', BranchesAPIView.as_view(),name='branches'),
-    path('branch/<int:pk>/', BranchDetailAPIView.as_view(),name='branch-detail'),
-    path('banks/', BanksAPIView.as_view(), name='banks'),
-    path('bank/<int:pk>/', BankDetailAPIView.as_view(), name='bank-detail'),
-    path('create_account/', CreateAccountAPIView.as_view(), name='create-account'),
-    path('deposits/', DepositAPIView.as_view(), name= 'deposits'),
-    path('withdrawals/', WithdrawAPIView.as_view(), name= 'withdrawals'),
-    path('transfers/', TransferAPIView.as_view(), name= 'transfers'),
-    path('accounts/', AccountListAPIView.as_view(), name='accounts'),
-    path('account/<int:pk>/', AccountDetailAPIView.as_view(), name='account-detail')
+    path('login/', UserLoginView.as_view(), name='user-login'),
+    path('register/', UserRegistrationView.as_view(), name='user-register'),
+    path('accounts/', include(account_router.urls)),  # Include the account_router URLs
+    path('account/<str:account_number>/', AccountDetailsView.as_view(), name='account-details'),
+    path('balance/<str:account_number>/', AccountBalanceView.as_view(), name='account-balance'),
+    path('withdraw/', WithdrawalView.as_view(), name='withdraws'),
+    path('deposit/', DepositView.as_view(), name='deposits'),
+    path('transfer/', TransferView.as_view(), name='transfers'),
 ]
