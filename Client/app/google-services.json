@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "714632244856",
+    "project_id": "as-bank-8ef69",
+    "storage_bucket": "as-bank-8ef69.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714632244856:android:e9e11b035d0e0d7d68078d",
+        "android_client_info": {
+          "package_name": "com.example.bankapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "714632244856-s5okkej1on3mhg00ga3ss9hts4c1vn1e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bankapp",
+            "certificate_hash": "79cb8e79ac80bb3ec097e2a6f291621ea4b4bcb4"
+          }
+        },
+        {
+          "client_id": "714632244856-bkprvbmgudaiiss4kr6io8ddreng246f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATYp2iqbfc7vx6AZOyBdkgjTqAwEvjLp8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "714632244856-bkprvbmgudaiiss4kr6io8ddreng246f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
